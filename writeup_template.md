@@ -1,6 +1,4 @@
-## Writeup Template
-
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+## Writeup
 
 ---
 
@@ -19,13 +17,14 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
+[image1]: ./examples/undistort_output.png "input and Undistorted output"
 [image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[image3]: ./examples/thresholding_Final.png "Thresholding Example"
+[image4]: ./examples/warped_straight_lines.png "Warp Example"
+[image5]: ./examples/Unwarped_straight_lines.png "Unwarp example"
+[image6s]: ./test_images/test6.jpg  "test image 6"
+[image6d]: ./examples/test6image_output.png "Example Output with test image 6"
+[video1]: ./marked_project_video.mp4 "Output Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
@@ -35,19 +34,18 @@ The goals / steps of this project are the following:
 
 ### Writeup / README
 
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
-
+#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.
 You're reading it!
 
 ### Camera Calibration
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+The code for this step is contained in the 2nd code cell of the jupyter notebook located in "AdvancedLaneFinding.ipynb".  
 
 I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image  'camera_cal/calibration1.jpg' using the `cv2.undistort()` function and obtained this result: 
 
 ![alt text][image1]
 
@@ -60,63 +58,59 @@ To demonstrate this step, I will describe how I apply the distortion correction 
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+I used a combination of color and gradient thresholds to generate a binary image (thresholding functions are implemented in code cell 4 of the notebook).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
 ![alt text][image3]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+The code for my perspective transform includes a class called 'PerspectiveTransformer', which appears in code cell 6 of the notebook.
+The class implements two methods 'Warp' and 'Wnwarp' to perform the perspective transform from camera view to 'bird's eye'/top view and vice-versa. 
+
+Followig piece of code shows the source and destination points used for the transformation.
+These points were selected using 'test_images/straight_lines1.jpg' as reference image. The objective is to transform the converging straight lines in camera view to parallel straight lines in top view.
 
 ```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+        # Points     [(left_bot ), (left top ), (right top), (right bot)]
+        self.s_pts = [(230,  700), (595,  450), (685,  450), (1080, 700)]
+        self.d_pts = [(300,  700), (300,    0), (1000,   0), (1000, 700)]
+        src = np.float32(self.s_pts)
+        dst = np.float32(self.d_pts)
+        self.M = cv2.getPerspectiveTransform(src, dst)        
+        self.Minv = cv2.getPerspectiveTransform(dst, src)
 ```
-
-This resulted in the following source and destination points:
-
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
 
 I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
 ![alt text][image4]
 
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
-
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+I also verified that my inverse perspective transform was working as expected by drawing the warped image back in to camera view.
 
 ![alt text][image5]
 
+#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+
+I mostly used the method explained in the lessons to implement the classify the non-zero pixels in the warped image to left and right lines of the lane.
+The code for this is in code cells 8 and 9 of the notebook.
+
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+I reused the code/logic explained in the lessons.
+This is implemented in function "get_roc_in_meters" in code cell 9 of the notebook.
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+I implemented this in function 'process_frame()' in code cell 9 of the notebook.
+Here is an example of my result on a test image 6:
 
-![alt text][image6]
+![alt text][image6s]
+![alt text][image6d]
 
 ---
 
 ### Pipeline (video)
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
-
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./marked_project_video.mp4)
 
 ---
 
@@ -124,4 +118,29 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+Problems faced:
+
+Color thresholding:
+I initially implemented the pipeline according the information presented in the lessons. I used S channel (from HLS color space) for color thresholding.
+But the program was unable to locate lines when there was shadows or the road color changed from black/brown to gray/white.
+I then dumped the images from that portion of the project video and ran the threshold functions to see if the lane lines were extracted properly. Turns out the problem was that S channel was not reliable when there are shadows.
+I then switched to extracting the "yellow" color and "white" color as these are the common colors of the road lines.
+As shown in the examples, this gives very good results under different lighting conditions.
+
+
+Curvature calcuations:
+The radius of curvature calculation seems to be bit off. I got the radius of curvature of ranging from 300m to 30000ms.
+While higher values can be explained due to almost straight lines, I am unabe to explain the values less than 587 m (absolute minimum as per US road standards). So there is probably some bug in the code that calculates the RoC in meters but I was unable to root cause it.
+
+
+Where the pipeline is likely to fail:
+Pipeline will most likely fail in case of roads with multiple lane lines (like double yellow lines) or road edges with contrasting color as the windowing algorithm used for locating lines will likely classify the pixels belonging to road edge as part of right line.
+
+What could you do to make it more robust?
+1. Thresholding (specially gradiant) can be better tuned to highlight the lane lines (and mask out the road edges and other disturbances).
+2. locate_lines() function can be improved to use adaptive window sizes/margins.
+3. Class Lane/Line can keep track of the polynomial fit over time to "smooth" out any sudeen changes.
+3. if sanity check for only one line fails, the good line can be used as reference to search. (by adding "possible" width of the lane to the x coordinates of the good line).
+
+
+
